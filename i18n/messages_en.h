@@ -11,7 +11,7 @@ static const I18N_MESSAGE messages_en[] = {
   /*   6 */{"Set date"},
   /*   7 */{"Set time"},
   /*   8 */{"Peripheral"},
-  /*   9 */{"Central"},
+  /*   9 *///{"Central"},
   /*   10 */{"Offline"},
   /*   11 */{"Incoming call"}
 };

@@ -274,6 +274,7 @@ static void gap_params_init(void)
     uint32_t                err_code;
     ble_gap_conn_params_t   gap_conn_params;
     ble_gap_conn_sec_mode_t sec_mode;
+	  ble_gap_addr_t 					ble_addr;
 
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
@@ -285,6 +286,11 @@ static void gap_params_init(void)
     err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_WATCH_SPORTS_WATCH);
     APP_ERROR_CHECK(err_code);
 
+		err_code = sd_ble_gap_address_get(&ble_addr);
+		APP_ERROR_CHECK(err_code);
+		err_code = sd_ble_gap_address_set(BLE_GAP_ADDR_CYCLE_MODE_NONE, &ble_addr);
+		APP_ERROR_CHECK(err_code);
+																					
     memset(&gap_conn_params, 0, sizeof(gap_conn_params));
 
     gap_conn_params.min_conn_interval = MIN_CONN_INTERVAL;

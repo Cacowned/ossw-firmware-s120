@@ -7,7 +7,7 @@
 #include "../utf8.h"
 #include "../i18n/i18n.h"
 
-#include "../ble/ble_central.h"
+//#include "../ble/ble_central.h"
 #include "../ble/ble_peripheral.h"
 
 static void scr_choosemode_handle_button_pressed(uint32_t button_id) {
@@ -20,7 +20,7 @@ static void scr_choosemode_handle_button_pressed(uint32_t button_id) {
 					  scr_mngr_show_screen(SCR_WATCHFACE);
 				    break;
 			  case SCR_EVENT_PARAM_BUTTON_DOWN:
-	          ble_central_mode_init();
+	          //ble_central_mode_init();
 					  scr_mngr_show_screen(SCR_WATCHFACE);
 				    break;
 		}
@@ -29,7 +29,7 @@ static void scr_choosemode_handle_button_pressed(uint32_t button_id) {
 static void scr_choosemode_draw() {
 	  mlcd_draw_text(I18N_TRANSLATE(MESSAGE_MODE_PERIPHERAL), 0, 16, MLCD_XRES, 30, FONT_OPTION_BIG, HORIZONTAL_ALIGN_CENTER);
 	  mlcd_draw_text(I18N_TRANSLATE(MESSAGE_MODE_OFFLINE), 0, 74, MLCD_XRES, 30, FONT_OPTION_BIG, HORIZONTAL_ALIGN_CENTER);
-	  mlcd_draw_text(I18N_TRANSLATE(MESSAGE_MODE_CENTRAL), 0, 129, MLCD_XRES, 30, FONT_OPTION_BIG, HORIZONTAL_ALIGN_CENTER);
+	  //mlcd_draw_text(I18N_TRANSLATE(MESSAGE_MODE_CENTRAL), 0, 129, MLCD_XRES, 30, FONT_OPTION_BIG, HORIZONTAL_ALIGN_CENTER);
 	  mlcd_draw_rect(0, 55, MLCD_XRES, 2);
 		mlcd_draw_rect(0, 113, MLCD_XRES, 2);
 }
