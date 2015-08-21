@@ -57,7 +57,7 @@ static const SCR_CONTROL_NUMBER_CONFIG days_config = {
 static NUMBER_CONTROL_DATA months_ctrl_data;
 static const SCR_CONTROL_NUMBER_CONFIG months_config = {
 	NUMBER_RANGE_0__19,
-	80,
+	100,
 	115,
 	NUMBER_FORMAT_FLAG_ZERO_PADDED | 4 << 22 | 4 << 16 | 32 << 8 | 48,
 	(uint32_t (*)(uint32_t, uint8_t))rtc_get_current_month,
