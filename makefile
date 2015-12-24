@@ -167,6 +167,7 @@ ASSEMBLER_SOURCE_PATHS += $(SDK_PATH)toolchain/gcc
 
 # Additional Flags
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
+CFLAGS += -DBLE_DFU_APP_SUPPORT
 CFLAGS += -Wno-unused-local-typedefs
 
 # Add in the global Makefile
