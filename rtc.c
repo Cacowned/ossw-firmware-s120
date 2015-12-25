@@ -7,17 +7,14 @@
 static app_timer_id_t      m_rtc_timer_id;
 
 static uint32_t current_time;
-
 static bool store_time = false;
 
 static void rtc_timeout_handler(void * p_context) {
     UNUSED_PARAMETER(p_context);
 
-		current_time++;
-	  store_time = true;
-	
-		scr_mngr_handle_event(SCR_EVENT_RTC_TIME_CHANGED, current_time);
-
+    current_time++;
+    store_time = true;
+    scr_mngr_handle_event(SCR_EVENT_RTC_TIME_CHANGED, current_time);
 }
 
 static uint32_t rtc_load_time(void) {
@@ -48,10 +45,27 @@ uint32_t rtc_get_current_time(void) {
 	  return current_time;
 }
 
-uint32_t rtc_get_current_hour(void) {
+uint32_t rtc_get_current_time_in_seconds(void) {
+    struct tm* time_struct = localtime(&current_time);
+	  return time_struct->tm_hour*3600 + time_struct->tm_min*60 + time_struct->tm_sec;
+}
+
+uint32_t rtc_get_current_hour_24(void) {
     struct tm* time_struct = localtime(&current_time);
 	  return time_struct->tm_hour;
 }
+
+uint32_t rtc_get_current_hour_12(void) {
+    struct tm* time_struct = localtime(&current_time);
+	  uint32_t h = time_struct->tm_hour % 12;
+		return h == 0 ? 12 : h;
+}
+
+uint32_t rtc_get_current_hour_12_designator(void) {
+    struct tm* time_struct = localtime(&current_time);
+	  return time_struct->tm_hour / 12;
+}
+
 uint32_t rtc_get_current_minutes(void) {
     struct tm* time_struct = localtime(&current_time);
 	  return time_struct->tm_min;
@@ -62,9 +76,19 @@ uint32_t rtc_get_current_seconds(void) {
 	  return time_struct->tm_sec;
 }
 
+uint32_t rtc_get_current_day_of_week(void) {
+    struct tm* time_struct = localtime(&current_time);
+	  return time_struct->tm_wday + 1;
+}
+
 uint32_t rtc_get_current_day_of_month(void) {
     struct tm* time_struct = localtime(&current_time);
 	  return time_struct->tm_mday;
+}
+
+uint32_t rtc_get_current_day_of_year(void) {
+    struct tm* time_struct = localtime(&current_time);
+	  return time_struct->tm_yday + 1;
 }
 
 uint32_t rtc_get_current_month(void) {
@@ -78,8 +102,10 @@ uint32_t rtc_get_current_year(void) {
 }
 
 void rtc_set_current_time(uint32_t new_time) {
-	  current_time = new_time;
-	  store_time = true;
+		if (new_time != current_time) {
+				current_time = new_time;
+				store_time = true;
+		}
 }
 
 void rtc_store_current_time(void) {

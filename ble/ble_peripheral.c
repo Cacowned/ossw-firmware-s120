@@ -21,8 +21,8 @@
 #include "../ext_flash.h"
 #include "../scr_mngr.h"
 #include "../rtc.h"
-#include "../notifications.h"
-#include "../screens/scr_watchset.h"
+#include "../ossw.h"
+#include "../command.h"
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT  1                                          /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
@@ -33,13 +33,13 @@
 
 #define DEVICE_NAME                      "OSSW"                                     /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME                "OpenSource"                               /**< Manufacturer. Will be passed to Device Information Service. */
-#define APP_ADV_INTERVAL                 300                                        /**< The advertising interval (in units of 0.625 ms. This value corresponds to 25 ms). */
-#define APP_ADV_TIMEOUT_IN_SECONDS       0xFFFF                                     /**< The advertising timeout in units of seconds. */
+#define APP_ADV_INTERVAL                 600                                        /**< The advertising interval (in units of 0.625 ms.). */
+#define APP_ADV_TIMEOUT_IN_SECONDS       0		                                     /**< The advertising timeout in units of seconds. */
 
 
 #define BATTERY_LEVEL_MEAS_INTERVAL      APP_TIMER_TICKS(10000, APP_TIMER_PRESCALER) /**< Battery level measurement interval (ticks). */
 
-#define MIN_CONN_INTERVAL                MSEC_TO_UNITS(10, UNIT_1_25_MS)           /**< Minimum acceptable connection interval. */
+#define MIN_CONN_INTERVAL                MSEC_TO_UNITS(30, UNIT_1_25_MS)           /**< Minimum acceptable connection interval. */
 #define MAX_CONN_INTERVAL                MSEC_TO_UNITS(75, UNIT_1_25_MS)           /**< Maximum acceptable connection interval. */
 
 #define SLAVE_LATENCY                    1                                          /**< Slave latency. */
@@ -77,66 +77,6 @@ static app_timer_id_t                    m_battery_timer_id;                    
 #ifdef BLE_DFU_APP_SUPPORT    
 static ble_dfu_t m_dfus; /**< Structure used to identify the DFU service. */
 #endif // BLE_DFU_APP_SUPPORT  
-			
-static uint32_t data_upload_ptr;
-static uint32_t notification_upload_ptr;
-static uint16_t notification_upload_size;
-
-#define WATCHSET_START_ADDRESS 0x1000
- 
-#define NOTIFICATION_START_ADDRESS 0x1C00
-
-static void init_data_upload(uint8_t type, uint32_t size) {
-		data_upload_ptr = WATCHSET_START_ADDRESS;
-		uint8_t zero = 0;
-		ext_ram_write_data(data_upload_ptr, &zero, 1);
-		data_upload_ptr++;
-	/*  int page_no = (size/0x100) + 1;
-	  for (int i=0; i < page_no; i++) {
-			  ext_flash_erase_page(i*0x100);
-		}*/
-}
-
-static void handle_data_upload_part(uint8_t *data, uint32_t size) {
-	  //ext_flash_write_data_block(upload_data_ptr, data, size);
-	  ext_ram_write_data(data_upload_ptr, data, size);
-	  data_upload_ptr += size;
-}
-
-static void handle_data_upload_done() {
-		uint8_t one = 1;
-		ext_ram_write_data(WATCHSET_START_ADDRESS, &one, 1);
-		scr_mngr_show_screen(SCR_WATCH_SET);
-}
-
-static void ble_peripheral_send_notification_upload_permission(bool permission) {
-	  uint8_t data[] = {0x23, permission};
-	  ble_ossw_string_send(&m_ossw, data, sizeof(data));
-}
-
-static void init_notification_upload(uint32_t size) {
-		notification_upload_ptr = NOTIFICATION_START_ADDRESS;
-		notification_upload_size = size;
-	
-		ble_peripheral_send_notification_upload_permission(notifications_is_data_handled());
-}
-
-static void handle_notification_upload_part(uint8_t *data, uint32_t size) {
-	  ext_ram_write_data(notification_upload_ptr, data, size);
-	  notification_upload_ptr += size;
-}
-
-static void handle_notification_upload_done() {
-	  notifications_handle_data(NOTIFICATION_START_ADDRESS, notification_upload_size);
-}
-
-static void handle_notification_alert_extend(uint16_t notification_id, uint16_t timout) {
-	  notifications_alert_extend(notification_id, timout);
-}
-
-static void handle_notification_alert_stop(uint16_t notification_id) {
-	  notifications_alert_stop(notification_id);
-}
 
 /**@brief Function for handling the data from the OSSW.
  *
@@ -147,48 +87,46 @@ static void handle_notification_alert_stop(uint16_t notification_id) {
 /**@snippet [Handling the data received over BLE] */
 static void ossw_data_handler(ble_ossw_t * p_ossw, uint8_t * p_data, uint16_t length)
 { 
+		#ifdef OSSW_DEBUG
+				sd_nvic_critical_region_enter(0);
+				printf("DAT: 0x%02x 0x%02x 0x%02x\r\n", p_data[0], p_data[1], p_data[2]);
+				sd_nvic_critical_region_exit(0);
+		#endif
+	
 	 switch(p_data[0]) {	
+		 case 0x01:
+					scr_mngr_handle_event(SCR_EVENT_APP_CONNECTION_CONFIRMED, NULL);
+					break;
 		 case 0x10:
 			    // set current time
 					rtc_set_current_time((p_data[1]<<24) | (p_data[2]<<16) | (p_data[3]<<8) | p_data[4]);
 					break; 
-		 case 0x20:
-			    // init data upload
-					init_data_upload(p_data[1], (p_data[2]<<24) | (p_data[3]<<16) | (p_data[4]<<8) | p_data[5]);
+		 case 0x40:
+					// command first part
+					command_reset_data();
+					command_append_data(p_data+1, length-1);
 					break;
-		 case 0x21:
-			    // upload data part
-		 			handle_data_upload_part(&p_data[1], length - 1);
+		 case 0x41:
+					// command next part
+					command_append_data(p_data+1, length-1);
 					break;
-		 case 0x22:
-			    // upload data finished
-					handle_data_upload_done();
-			    break;	
-		 case 0x23:
-			    // init notification upload
-					init_notification_upload((p_data[1]<<8) | p_data[2]);
+		 case 0x42:
+					// command last part
+					command_append_data(p_data+1, length-1);
+					command_data_complete();
 					break;
-		 case 0x24:
-			    // upload notification part
-		 			handle_notification_upload_part(&p_data[1], length - 1);
-					break;
-		 case 0x25:
-			    // upload notification finished
-					handle_notification_upload_done();
-			    break;	
-		 case 0x26:
-			    // extend alert notification
-					handle_notification_alert_extend(p_data[1] << 8 | p_data[2], p_data[3] << 8 | p_data[4]);
-			    break;		
-		 case 0x27:
-			    // stop alert notification
-					handle_notification_alert_stop(p_data[1] << 8 | p_data[2]);
-			    break;
-		 case 0x30:
-			    // set ext param
-					set_external_property_data(p_data[1], &p_data[2], length-2);
+		 case 0x43:
+					// command first and last part
+					command_reset_data();
+					command_append_data(p_data+1, length-1);
+					command_data_complete();
 					break;
 	 }
+}
+
+void ble_peripheral_confirm_command_processed(uint8_t respCode) {
+	  uint8_t data[] = {0x40, respCode};
+	  ble_ossw_string_send(&m_ossw, data, sizeof(data));
 }
 
 void ble_peripheral_invoke_external_function(uint8_t function_id) {
@@ -381,6 +319,7 @@ static void services_init(void)
     memset(&dis_init, 0, sizeof(dis_init));
 
     ble_srv_ascii_to_utf8(&dis_init.manufact_name_str, (char *)MANUFACTURER_NAME);
+    ble_srv_ascii_to_utf8(&dis_init.fw_rev_str, (char *)FIRMWARE_VERSION);
 
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&dis_init.dis_attr_md.read_perm);
     BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&dis_init.dis_attr_md.write_perm);
@@ -672,7 +611,7 @@ static void advertising_init(void)
     options.ble_adv_fast_interval = APP_ADV_INTERVAL;
     options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
 
-    err_code = ble_advertising_init(&advdata, &options, on_adv_evt, NULL);
+    err_code = ble_advertising_init(&advdata, NULL, &options, on_adv_evt, NULL);
     APP_ERROR_CHECK(err_code);
 }
 

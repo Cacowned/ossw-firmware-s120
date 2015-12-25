@@ -7,6 +7,7 @@
 #define NOTIFICATIONS_CATEGORY_INCOMING_CALL					1
 
 #define NOTIFICATIONS_FUNCTION_DISMISS_ALL     			  0x10
+#define NOTIFICATIONS_FUNCTION_RESEND			     			  0x11
 #define NOTIFICATIONS_FUNCTION_ALERT_DISMISS          0x20
 #define NOTIFICATIONS_FUNCTION_ALERT_OPTION_1         0x21
 #define NOTIFICATIONS_FUNCTION_ALERT_OPTION_2         0x22
@@ -15,6 +16,7 @@
 #define NOTIFICATIONS_NEXT_PART							          0x31
 #define NOTIFICATIONS_NEXT									          0x32
 #define NOTIFICATIONS_PREV_PART							          0x33
+#define NOTIFICATIONS_OPEN							              0x34
 
 #define NOTIFICATIONS_TYPE_ALERT 											1
 #define NOTIFICATIONS_TYPE_INFO												2
@@ -30,11 +32,9 @@
 		
 void notifications_init(void);
 
-void notifications_process(void);
+void notifications_open(uint16_t notification_id);
 
 void notifications_handle_data(uint16_t notification_id, uint16_t address);
-
-bool notifications_is_data_handled(void);
 
 void notifications_info_notify(uint16_t time, uint32_t vibration_pattern);
 

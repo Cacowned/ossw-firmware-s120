@@ -64,7 +64,17 @@ extern uint32_t * p_spi1_base_address;
 #define MLCD_SPI_SS SPI1_SS0
 
 #define APP_TIMER_PRESCALER              0                                          /**< Value of the RTC1 PRESCALER register. */
-#define APP_TIMER_MAX_TIMERS             10+2												                  /**< Maximum number of simultaneously created timers. */
+#define APP_TIMER_MAX_TIMERS             12												                  /**< Maximum number of simultaneously created timers. */
 #define APP_TIMER_OP_QUEUE_SIZE          4                                          /**< Size of timer operation queues. */
+
+#define ACCEL_INT1				 3u
+#define ACCEL_INT2				 2u
+
+#define BATTERY_LEVEL_ADC_PIN 	NRF_ADC_CONFIG_INPUT_6
+#define BATTERY_CHARGING_INT_PIN			25u
+#define BATTERY_FULLY_CHARGED_INT_PIN	24u
+
+#define RX_PIN_NUMBER  15
+#define TX_PIN_NUMBER  16
 
 #endif // WATCH_BOARD_H

@@ -12,13 +12,13 @@
 #include "nrf51_bitfields.h"
 #include "board.h"
 #include "app_trace.h"
-#include "app_gpiote.h"
 #include "nrf_delay.h"
 #include "nrf_soc.h"
 #include "spi.h"
 #include "mlcd.h"
 #include "mlcd_draw.h"
 #include "ext_ram.h"
+#include "ext_flash.h"
 #include "rtc.h"
 #include "scr_mngr.h"
 #include "buttons.h"
@@ -26,9 +26,57 @@
 #include "vibration.h"
 #include "notifications.h"
 #include "softdevice_handler.h"
+#include "command.h"
+#include "stopwatch.h"
+#include "fs.h"
+#include "accel.h"
+#include "watchset.h"
+#include "config.h"
+
+#ifdef OSSW_DEBUG
+		#include "app_uart.h"
+#endif
 
 #define DEAD_BEEF                        0xDEADBEEF                                 /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
-			
+		
+		
+#ifdef OSSW_DEBUG
+void uart_error_handle(app_uart_evt_t * p_event)
+{
+    if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
+    {
+        APP_ERROR_HANDLER(p_event->data.error_communication);
+    }
+    else if (p_event->evt_type == APP_UART_FIFO_ERROR)
+    {
+        APP_ERROR_HANDLER(p_event->data.error_code);
+    }
+}
+
+void init_uart(void) {
+    uint32_t err_code;
+		const app_uart_comm_params_t comm_params =
+      {
+          RX_PIN_NUMBER,
+          TX_PIN_NUMBER,
+          0xFF,
+          0xFF,
+          APP_UART_FLOW_CONTROL_DISABLED,
+          false,
+          UART_BAUDRATE_BAUDRATE_Baud230400
+      };
+
+    APP_UART_FIFO_INIT(&comm_params,
+                         1,
+                         128,
+                         uart_error_handle,
+                         APP_IRQ_PRIORITY_LOW,
+                         err_code);
+
+    APP_ERROR_CHECK(err_code);
+	}
+#endif
+
 /**@brief Callback function for asserts in the SoftDevice.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
@@ -52,7 +100,6 @@ static void power_manage(void)
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
 }
-
 
 static uint_fast8_t splashscreen_draw_func(uint_fast8_t x, uint_fast8_t y)
 {
@@ -96,7 +143,6 @@ static uint_fast8_t splashscreen_draw_func(uint_fast8_t x, uint_fast8_t y)
 		return 0;
 }
 
-
 static void timers_init(void)
 {
     // Initialize timer module.
@@ -120,27 +166,39 @@ static void init_lcd_with_splash_screen() {
  */
 int main(void)
 {
+	
+#ifdef OSSW_DEBUG
+		init_uart();
+#endif
+	
 	  spi_init();
 	  ext_ram_init();
 	  init_lcd_with_splash_screen();
 
+		accel_init();
+	
     // Initialize.
     timers_init();
 	  rtc_timer_init();
-    APP_GPIOTE_INIT(1);
+		buttons_init();
+	  battery_init();
 	
     // Initialize the SoftDevice handler module.
     SOFTDEVICE_HANDLER_INIT(NRF_CLOCK_LFCLKSRC_XTAL_20_PPM, NULL);
-		
+	
 	  // splash screen
 		nrf_delay_ms(500);
 	
+		fs_init();
+		config_init();
 		scr_mngr_init();
-		buttons_init();
-	  battery_init();
 		vibration_init();
 		notifications_init();
-
+		
+		stopwatch_init();
+		
+		mlcd_timers_init();
+		
     // Enter main loop.
     for (;;)
     {
@@ -148,7 +206,11 @@ int main(void)
 					  rtc_store_current_time();
 				}
 				
-				notifications_process();
+				stopwatch_process();
+				
+				command_process();
+				
+				watchset_process_async_operation();
 			  
 				scr_mngr_draw_screen();
 				

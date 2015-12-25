@@ -5,6 +5,7 @@
 #include "../mlcd_draw.h"
 #include "../mlcd.h"
 #include "../i18n/i18n.h"
+#include "../fs.h"
 #include "nrf_soc.h"
 
 static int8_t selectedOption = 0;
@@ -16,8 +17,6 @@ typedef struct
 	  void (*handler)();
 } MENU_OPTION;	
 
-//static void opt_handler_do_nothing() {};
-	
 static void opt_handler_change_date() {
     scr_mngr_show_screen(SCR_CHANGE_DATE);
 };
@@ -26,37 +25,50 @@ static void opt_handler_change_time() {
     scr_mngr_show_screen(SCR_CHANGE_TIME);
 };
 
+static void opt_handler_about() {
+    scr_mngr_show_screen(SCR_ABOUT);
+};
+
+void fs_reformat(void);
+
+static void reformat() {
+		fs_reformat();
+		scr_mngr_show_screen(SCR_WATCHFACE);
+}
+
 static const MENU_OPTION settings_menu[] = {
 	  {MESSAGE_DATE, opt_handler_change_date},
 		{MESSAGE_TIME, opt_handler_change_time},
 		{MESSAGE_DISPLAY, mlcd_colors_toggle},
-	//	{MESSAGE_SENSORS, opt_handler_do_nothing},
-		{MESSAGE_RESTART, NVIC_SystemReset}
+		{MESSAGE_FORMAT, reformat},
+		{MESSAGE_RESTART, NVIC_SystemReset},
+		{MESSAGE_ABOUT, opt_handler_about}
 };
 
 static const uint8_t SIZE_OF_MENU = sizeof(settings_menu)/sizeof(MENU_OPTION);
 
-static void scr_settings_handle_button_pressed(uint32_t button_id) {
+static bool scr_settings_handle_button_pressed(uint32_t button_id) {
 	  switch (button_id) {
 			  case SCR_EVENT_PARAM_BUTTON_BACK:
 					  scr_mngr_show_screen(SCR_WATCHFACE);
-				    break;
+				    return true;
 			  case SCR_EVENT_PARAM_BUTTON_UP:
 					  selectedOption--;
 				    if (selectedOption < 0) {
 								selectedOption = 0;
 						}
-				    break;
+				    return true;
 			  case SCR_EVENT_PARAM_BUTTON_DOWN:
 					  selectedOption++;
 				    if (selectedOption >= SIZE_OF_MENU) {
 								selectedOption = SIZE_OF_MENU-1;
 						}
-				    break;
+				    return true;
 			  case SCR_EVENT_PARAM_BUTTON_SELECT:
 					  settings_menu[selectedOption].handler();
-				    break;
+				    return true;
 		}
+		return false;
 }
 
 static void draw_option(const char *text, uint_fast8_t *yPos) {
@@ -84,16 +96,23 @@ static void scr_settings_draw_options() {
 static void scr_settings_refresh_screen() {
 	  scr_mngr_redraw_notification_bar();
 	
-	  if (lastSelectedOption != selectedOption) {
+		int8_t curr_opt = selectedOption;
+	  if (lastSelectedOption != curr_opt) {
 				mlcd_clear_rect(0, 18, MLCD_XRES, MLCD_YRES-18);
 				scr_settings_draw_options();
 	  }
-		lastSelectedOption = selectedOption;
+		lastSelectedOption = curr_opt;
 }
 
 static void scr_settings_init() {
 		selectedOption = 0;
 		lastSelectedOption = 0xFF;
+	
+		spiffs_file fd = SPIFFS_open(&fs, "u/settings", SPIFFS_RDONLY, 0);
+		if (fd >= 0) {
+				SPIFFS_lseek(&fs, fd, 0, SPIFFS_SEEK_SET);
+				scr_mngr_show_screen_with_param(SCR_WATCH_SET, 2<<24 | fd);
+		}
 }
 
 static void scr_settings_draw_screen() {
@@ -101,19 +120,19 @@ static void scr_settings_draw_screen() {
 		scr_settings_draw_options();
 }
 
-void scr_settings_handle_event(uint32_t event_type, uint32_t event_param) {
+bool scr_settings_handle_event(uint32_t event_type, uint32_t event_param) {
 	  switch(event_type) {
 			  case SCR_EVENT_INIT_SCREEN:
 				    scr_settings_init();
-				    break;
+				    return true;
         case SCR_EVENT_DRAW_SCREEN:
             scr_settings_draw_screen();
-            break;
+            return true;
         case SCR_EVENT_REFRESH_SCREEN:
             scr_settings_refresh_screen();
-            break;
+            return true;
 			  case SCR_EVENT_BUTTON_PRESSED:
-				    scr_settings_handle_button_pressed(event_param);
-				    break;
+				    return scr_settings_handle_button_pressed(event_param);
 		}
+		return false;
 }

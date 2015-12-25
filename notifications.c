@@ -5,12 +5,10 @@
 #include "vibration.h"
 #include "ble/ble_peripheral.h"
 #include "ext_ram.h"
-
-#define NOTIFICATION_INFO_ADDRESS 0x1800
+#include "nrf_soc.h"
 
 static app_timer_id_t      m_notifications_alert_timer_id;
 static uint16_t m_current_alert_notification_id = 0;
-static bool handle_data = false;
 
 static void notifications_alert_timeout_handler(void * p_context) {
     UNUSED_PARAMETER(p_context);
@@ -53,15 +51,10 @@ static uint32_t get_next_int(uint16_t *ptr) {
 	  return data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
 }
 
-
-void notifications_process(void) {
-		handle_data = false;
-}
-
 void copy_notification_info_data(uint16_t address, uint16_t size) {
 		uint8_t buffer[16];
 		uint16_t current_read_address = address;
-	  uint16_t current_write_address = NOTIFICATION_INFO_ADDRESS;
+	  uint16_t current_write_address = EXT_RAM_DATA_NOTIFICATION_INFO_ADDRESS;
 		uint16_t data_to_copy = size > 1024 ? 1024 : size;
 		uint8_t part_size;
 			while(data_to_copy > 0) {
@@ -83,8 +76,6 @@ void notifications_handle_data(uint16_t address, uint16_t size) {
 						uint32_t vibration_pattern = get_next_int(&address);
 						uint16_t timeout = get_next_short(&address);
 						notifications_alert_notify(notification_id, address, timeout, vibration_pattern);
-						// mark data as handled after rendering notification alert (no need to rerender so data can be lost)
-						handle_data = true;	
 						}
 						break;
 				case NOTIFICATIONS_TYPE_INFO:
@@ -92,7 +83,6 @@ void notifications_handle_data(uint16_t address, uint16_t size) {
 						uint32_t vibration_pattern = get_next_int(&address);
 						uint16_t time = get_next_short(&address);
 						copy_notification_info_data(address, size - 7);
-						handle_data = true;	
 						notifications_info_notify(time, vibration_pattern);
 						}
 						break;
@@ -101,17 +91,10 @@ void notifications_handle_data(uint16_t address, uint16_t size) {
 							  notifications_info_clear_all();
 						} else {
 								copy_notification_info_data(address, size - 1);
-								handle_data = true;	
 							  notifications_info_update();
 						}
 						break;
-				default:
-						handle_data = true;	
 		}
-}
-
-bool notifications_is_data_handled(void) {
-		return !handle_data;
 }
 
 void notifications_info_notify(uint16_t time, uint32_t vibration_pattern) {
@@ -146,6 +129,12 @@ void notifications_alert_notify(uint16_t notification_id, uint16_t address, uint
 }
 
 void notifications_alert_extend(uint16_t notification_id, uint16_t timeout) {
+	
+		#ifdef OSSW_DEBUG
+				sd_nvic_critical_region_enter(0);
+				printf("EXTEND: 0x%04x 0x%04x 0x%04x\r\n", notification_id, m_current_alert_notification_id, timeout);
+				sd_nvic_critical_region_exit(0);
+		#endif
 	  if (m_current_alert_notification_id == notification_id) {
 				uint32_t err_code;	 
 				err_code = app_timer_stop(m_notifications_alert_timer_id);
@@ -172,6 +161,11 @@ void notifications_invoke_function(uint8_t function_id) {
 	  ble_peripheral_invoke_notification_function(function_id);
 }
 
+void notifications_open(uint16_t notification_id) {
+		uint8_t data[2] = {notification_id >> 8, notification_id&0xFF};
+		ble_peripheral_invoke_notification_function_with_data(NOTIFICATIONS_OPEN, data, 2);
+}
+
 void notifications_prev_part(uint16_t notification_id, uint8_t current_part_no) {
 		uint8_t data[3] = {notification_id >> 8, notification_id&0xFF, current_part_no};
 		ble_peripheral_invoke_notification_function_with_data(NOTIFICATIONS_PREV_PART, data, 3);
@@ -188,5 +182,5 @@ void notifications_next(uint16_t notification_id) {
 }
 
 uint32_t notifications_get_current_data(void) {
-		return NOTIFICATION_INFO_ADDRESS;
+		return EXT_RAM_DATA_NOTIFICATION_INFO_ADDRESS;
 }

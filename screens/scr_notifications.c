@@ -26,11 +26,11 @@ static uint16_t get_next_short(uint32_t *ptr) {
 	  return data[0] << 8 | data[1];
 }
 
-static void scr_notifications_handle_button_pressed(uint32_t button_id) {
+static bool scr_notifications_handle_button_pressed(uint32_t button_id) {
 	  switch (button_id) {
 			  case SCR_EVENT_PARAM_BUTTON_BACK:
 						scr_mngr_close_notifications();
-				    break;
+				    return true;
 			  case SCR_EVENT_PARAM_BUTTON_UP:
 				{
 						uint32_t read_address = notifications_get_current_data();
@@ -44,7 +44,7 @@ static void scr_notifications_handle_button_pressed(uint32_t button_id) {
 								}
 						}
 				}
-				    break;
+				    return true;
 			  case SCR_EVENT_PARAM_BUTTON_DOWN:
 				{
 					
@@ -66,11 +66,23 @@ static void scr_notifications_handle_button_pressed(uint32_t button_id) {
 								}
 						}
 				}
-				    break;
+				    return true;
+			  case SCR_EVENT_PARAM_BUTTON_SELECT:
+				{
+						uint32_t read_address = notifications_get_current_data();
+						uint8_t notification_type = get_next_byte(&read_address);
+	
+						if (notification_type != NOTIFICATIONS_CATEGORY_SUMMARY) {
+								uint16_t notification_id = get_next_short(&read_address);
+								notifications_open(notification_id);
+						}
+				}
+				    return true;
 		}
+		return false;
 }
 
-static void scr_notifications_handle_button_long_pressed(uint32_t button_id) {
+static bool scr_notifications_handle_button_long_pressed(uint32_t button_id) {
 	  switch (button_id) {
 			  case SCR_EVENT_PARAM_BUTTON_DOWN:
 				{
@@ -81,8 +93,9 @@ static void scr_notifications_handle_button_long_pressed(uint32_t button_id) {
 								notifications_next(notification_id);
 						}				
 				}
-				    break;
+				    return true;
 		}
+		return false;
 }
 
 static void scr_notifications_init() {
@@ -125,24 +138,21 @@ static void scr_notifications_draw_screen() {
 static void scr_notifications_refresh_screen() {
 }
 
-void scr_notifications_handle_event(uint32_t event_type, uint32_t event_param) {
+bool scr_notifications_handle_event(uint32_t event_type, uint32_t event_param) {
 	  switch(event_type) {
 			  case SCR_EVENT_INIT_SCREEN:
 				    scr_notifications_init();
-				    break;
+				    return true;
         case SCR_EVENT_DRAW_SCREEN:
             scr_notifications_draw_screen();
-            break;
+				    return true;
         case SCR_EVENT_REFRESH_SCREEN:
             scr_notifications_refresh_screen();
-            break;
+				    return true;
 			  case SCR_EVENT_BUTTON_PRESSED:
-				    scr_notifications_handle_button_pressed(event_param);
-				    break;
+				    return scr_notifications_handle_button_pressed(event_param);
 			  case SCR_EVENT_BUTTON_LONG_PRESSED:
-				    scr_notifications_handle_button_long_pressed(event_param);
-				    break;
-			  case SCR_EVENT_DESTROY_SCREEN:
-				    break;
+				    return scr_notifications_handle_button_long_pressed(event_param);
 		}
+		return false;
 }
