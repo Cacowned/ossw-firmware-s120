@@ -121,11 +121,11 @@ void rtc_store_current_time(void) {
 bool rtc_should_store_current_time(void) {
 	  return store_time;
 }
-
+/*
 _ARMABI time_t time(time_t * tp) {
 	  if( tp != 0 )
     {
         *tp = current_time; 
     }
     return current_time; 
-}
+}*/

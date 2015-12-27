@@ -117,7 +117,7 @@ void watchset_set_watch_face(bool flag);
 
 bool watchset_is_watch_face(void);
 
-void watchset_next_watch_face(void);
+static void watchset_next_watch_face(void);
 
 void watchset_async_operation(uint8_t op, uint32_t param);
 
