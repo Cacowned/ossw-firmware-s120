@@ -42,12 +42,15 @@ C_SOURCE_FILES += ble_hrs_c.c
 C_SOURCE_FILES += ble_dis.c
 C_SOURCE_FILES += ble_bas.c
 C_SOURCE_FILES += ble_bas_c.c
+C_SOURCE_FILES += ble_dfu.c
 C_SOURCE_FILES += nrf_delay.c
 C_SOURCE_FILES += nrf_adc.c
 C_SOURCE_FILES += nrf_drv_gpiote.c
 C_SOURCE_FILES += nrf_drv_common.c
 C_SOURCE_FILES += pstorage.c
 C_SOURCE_FILES += device_manager_peripheral.c
+C_SOURCE_FILES += dfu_app_handler.c
+C_SOURCE_FILES += bootloader_util.c
 
 # /ble
 C_SOURCE_FILES += ble_central.c
@@ -81,13 +84,9 @@ C_SOURCE_FILES += spiffs_nucleus.c
 C_SOURCE_FILES += app_button.c
 C_SOURCE_FILES += app_error.c
 C_SOURCE_FILES += app_fifo.c
-#C_SOURCE_FILES += app_gpiote.c
 C_SOURCE_FILES += app_timer.c
 C_SOURCE_FILES += app_trace.c
 C_SOURCE_FILES += app_uart_fifo.c
-
-# [SDK]/simple_uart
-#C_SOURCE_FILES += simple_uart.c
 
 # Make sure we're pointing to the right SDK version
 ROOT_PATH = D:/nRF51822/
@@ -109,6 +108,7 @@ INCLUDEPATHS += -I"screens"
 INCLUDEPATHS += -I"spiffs"
 INCLUDEPATHS += -I"$(SDK_PATH)device"
 INCLUDEPATHS += -I"$(SDK_PATH)libraries/button"
+INCLUDEPATHS += -I"$(SDK_PATH)libraries/bootloader_dfu"
 INCLUDEPATHS += -I"$(SDK_PATH)libraries/trace"
 INCLUDEPATHS += -I"$(SDK_PATH)libraries/crc16"
 INCLUDEPATHS += -I"$(SDK_PATH)libraries/gpiote"
@@ -121,6 +121,7 @@ INCLUDEPATHS += -I"$(SDK_PATH)ble/ble_services/ble_hrs"
 INCLUDEPATHS += -I"$(SDK_PATH)ble/ble_services/ble_hrs_c"
 INCLUDEPATHS += -I"$(SDK_PATH)ble/ble_services/ble_bas"
 INCLUDEPATHS += -I"$(SDK_PATH)ble/ble_services/ble_bas_c"
+INCLUDEPATHS += -I"$(SDK_PATH)ble/ble_services/ble_dfu"
 INCLUDEPATHS += -I"$(SDK_PATH)ble/ble_db_discovery"
 INCLUDEPATHS += -I"$(SDK_PATH)ble/common"
 INCLUDEPATHS += -I"$(SDK_PATH)ble/device_manager"
@@ -139,6 +140,7 @@ INCLUDEPATHS += -I"$(SDK_PATH)toolchain"
 C_SOURCE_PATHS += $(wildcard ./*) $(SDK_PATH)softdevice/common/softdevice_handler
 C_SOURCE_PATHS += $(SDK_PATH)device
 C_SOURCE_PATHS += $(SDK_PATH)libraries/button
+C_SOURCE_PATHS += $(SDK_PATH)libraries/bootloader_dfu
 C_SOURCE_PATHS += $(SDK_PATH)libraries/trace
 C_SOURCE_PATHS += $(SDK_PATH)libraries/crc16
 C_SOURCE_PATHS += $(SDK_PATH)libraries/gpiote
@@ -151,6 +153,7 @@ C_SOURCE_PATHS += $(SDK_PATH)ble/ble_services/ble_hrs
 C_SOURCE_PATHS += $(SDK_PATH)ble/ble_services/ble_hrs_c
 C_SOURCE_PATHS += $(SDK_PATH)ble/ble_services/ble_bas
 C_SOURCE_PATHS += $(SDK_PATH)ble/ble_services/ble_bas_c
+C_SOURCE_PATHS += $(SDK_PATH)ble/ble_services/ble_dfu
 C_SOURCE_PATHS += $(SDK_PATH)ble/ble_db_discovery
 C_SOURCE_PATHS += $(SDK_PATH)ble/device_manager
 C_SOURCE_PATHS += $(SDK_PATH)ble/common
